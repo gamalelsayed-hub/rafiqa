@@ -1,24 +1,48 @@
 {
   "expo": {
-    "name": "rafiqa",
+    "name": "رفيقة",
     "slug": "rafiqa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rafiqa.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "عشان تصوّري التحاليل والسونار",
+        "NSPhotoLibraryUsageDescription": "عشان ترفعي صور التحاليل والسونار"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F1E4EE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.rafiqa.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#6D3560"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "عشان ترفعي صور التحاليل والسونار",
+          "cameraPermission": "عشان تصوّري التحاليل والسونار"
+        }
+      ],
+      "expo-sharing",
+      "expo-font"
+    ],
+    "description": "رفيقة المرأة المسلمة: الدورة والطهر والحمل والتمارين والأحكام والسيرة والتربية"
   }
 }

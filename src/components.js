@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Ellipse, Line, Path } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { C, T, row, useScale } from './ui';
 import { addDays, monthName, toKey, todayKey } from './cycle';
@@ -123,8 +123,19 @@ function blend(A, B, t) {
   return out;
 }
 
+// ألوان الرسمة: امرأة محجبة بخمار وفستان طويل واسع
+const LOOK = {
+  hijab: '#7E2156',
+  hijabFar: '#A04D7E',
+  dress: '#D47FA6',
+  dressFar: '#E6AFC8',
+  legs: '#8C5577',
+  legsFar: '#BC93AB',
+  skin: '#F0CDB7',
+};
+
 /** frames: [poseA, poseB]  |  speed: مدة الحركة بالمللي ثانية  |  pregnant: يرسم بطن حامل */
-export function Figure({ frames, speed = 1200, size = 180, playing = true, pregnant = false, color = C.plum, kegel = false }) {
+export function Figure({ frames, speed = 1200, size = 180, playing = true, pregnant = false, color, kegel = false }) {
   const [t, setT] = useState(0);
   const start = useRef(Date.now());
   useEffect(() => {
@@ -139,37 +150,76 @@ export function Figure({ frames, speed = 1200, size = 180, playing = true, pregn
   const A = POSES[frames[0]] || POSES.stand;
   const B = POSES[frames[1]] || A;
   const p = blend(A, B, t);
-  const L = (a, b, w = 4.2, c = color) => <Line x1={p[a][0]} y1={p[a][1]} x2={p[b][0]} y2={p[b][1]} stroke={c} strokeWidth={w} strokeLinecap="round" />;
-  const far = '#B89AB0';
-  const belly = lerp(p.neck, p.hip, 0.62);
-  // اتجاه البطن: عمودي على خط الضهر، ناحية «قدام» الجسم
+  const dim = color && color !== C.plum; // وقت الراحة بنهدّي الألوان
+  const L = (a, b, w, c) => <Line x1={p[a][0]} y1={p[a][1]} x2={p[b][0]} y2={p[b][1]} stroke={c} strokeWidth={w} strokeLinecap="round" />;
+
+  // اتجاه الجسم
   const dx = p.hip[0] - p.neck[0];
   const dy = p.hip[1] - p.neck[1];
   const len = Math.hypot(dx, dy) || 1;
-  let nx = -dy / len;
-  let ny = dx / len;
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy; // عمودي على الضهر
+  const py = ux;
+
+  // البطن للحامل
+  const belly = lerp(p.neck, p.hip, 0.62);
+  let nx = px;
+  let ny = py;
   if (Math.abs(dx) < 6) {
-    nx = 0.9; ny = 0; // واقفة من قدام: نعرضها كأنها من الجنب شوية
+    nx = 0.9; ny = 0;
   } else if (ny < 0) {
-    nx = -nx; ny = -ny; // البطن لتحت في الوضعيات الأفقية
+    nx = -nx; ny = -ny;
   }
+
+  // الفستان: من الكتف للركبة، واسع عند الوسط
+  const sh = (k) => [p.neck[0] + px * k, p.neck[1] + py * k];
+  const hp = (k) => [p.hip[0] + px * k, p.hip[1] + py * k];
+  const knees = [p.lk, p.rk];
+  const kneeMid = lerp(p.lk, p.rk, 0.5);
+  const hem = (k) => [kneeMid[0] + px * k + (kneeMid[0] - p.hip[0]) * 0.15, kneeMid[1] + py * k + (kneeMid[1] - p.hip[1]) * 0.15];
+  const spread = Math.max(7, Math.hypot(p.lk[0] - p.rk[0], p.lk[1] - p.rk[1]) / 2 + 4);
+  const dressPath = `M${sh(-4.5).join(',')} Q${p.spine[0] - px * 6},${p.spine[1] - py * 6} ${hp(-6.5).join(',')} L${hem(-spread).join(',')} L${hem(spread).join(',')} L${hp(6.5).join(',')} Q${p.spine[0] + px * 6},${p.spine[1] + py * 6} ${sh(4.5).join(',')} Z`;
+
+  // الخمار: دايرة حوالين الراس ونازل على الكتاف
+  const hx = p.head[0];
+  const hy = p.head[1];
+  const toNeck = [p.neck[0] - hx, p.neck[1] - hy];
+  const tl = Math.hypot(toNeck[0], toNeck[1]) || 1;
+  const qx = -toNeck[1] / tl;
+  const qy = toNeck[0] / tl;
+  const drape = `M${hx + qx * 7.4},${hy + qy * 7.4} L${p.neck[0] + qx * 8 + toNeck[0] / tl * 3},${p.neck[1] + qy * 8 + toNeck[1] / tl * 3} Q${p.neck[0] + toNeck[0] / tl * 6},${p.neck[1] + toNeck[1] / tl * 6} ${p.neck[0] - qx * 8 + toNeck[0] / tl * 3},${p.neck[1] - qy * 8 + toNeck[1] / tl * 3} L${hx - qx * 7.4},${hy - qy * 7.4} Z`;
+  // الوش بيبص لقدام: في الوقفة الأمامية في النص، وفي الجانبي ناحية اتجاه الحركة
+  const front = Math.abs(dx) < 6 && Math.abs(p.head[0] - p.neck[0]) < 3;
+  const fx = front ? 0 : -(toNeck[0] / tl) * 0 + (p.hip[0] > p.neck[0] ? -1.6 : 1.6);
+  const fy = front ? 0.6 : 0.4;
+
+  const k = dim ? 0.55 : 1;
+  const op = { opacity: k };
 
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Line x1="4" y1="91" x2="96" y2="91" stroke={C.line} strokeWidth="1.5" />
-      {/* الأطراف البعيدة بلون أفتح */}
-      {L('neck', 'le', 4, far)}
-      {L('le', 'lh', 4, far)}
-      {L('hip', 'lk', 4.4, far)}
-      {L('lk', 'lf', 4.4, far)}
-      <Path d={`M${p.neck[0]},${p.neck[1]} Q${p.spine[0]},${p.spine[1]} ${p.hip[0]},${p.hip[1]}`} stroke={color} strokeWidth={5.5} fill="none" strokeLinecap="round" />
-      {pregnant ? <Ellipse cx={belly[0] + nx * 5} cy={belly[1] + ny * 5} rx={7} ry={7} fill={C.babySoft} stroke={C.baby} strokeWidth={1.6} /> : null}
-      {kegel ? <Circle cx={p.hip[0]} cy={p.hip[1]} r={3 + t * 4} fill="none" stroke={C.fertile} strokeWidth={1.4} opacity={1 - t * 0.6} /> : null}
-      {L('hip', 'rk', 4.6)}
-      {L('rk', 'rf', 4.6)}
-      {L('neck', 're')}
-      {L('re', 'rh')}
-      <Circle cx={p.head[0]} cy={p.head[1]} r={6.2} fill={color} />
+      <G {...op}>
+        {/* الأطراف البعيدة بلون أفتح */}
+        {L('hip', 'lk', 6, LOOK.dressFar)}
+        {L('lk', 'lf', 4.6, LOOK.legsFar)}
+        {L('neck', 'le', 4.6, LOOK.dressFar)}
+        {L('le', 'lh', 4.2, LOOK.dressFar)}
+        <Circle cx={p.lh[0]} cy={p.lh[1]} r={1.9} fill={LOOK.skin} />
+        {L('rk', 'rf', 4.6, LOOK.legs)}
+        <Path d={dressPath} fill={LOOK.dress} />
+        {pregnant ? <Ellipse cx={belly[0] + nx * 5} cy={belly[1] + ny * 5} rx={7.5} ry={7.2} fill={LOOK.dress} stroke="#fff" strokeWidth={0.8} /> : null}
+        {kegel ? <Circle cx={p.hip[0]} cy={p.hip[1]} r={3 + t * 4} fill="none" stroke={C.fertile} strokeWidth={1.4} opacity={1 - t * 0.6} /> : null}
+        {L('neck', 're', 4.8, LOOK.dress)}
+        {L('re', 'rh', 4.4, LOOK.dress)}
+        <Circle cx={p.rh[0]} cy={p.rh[1]} r={2} fill={LOOK.skin} />
+        <Circle cx={p.lf[0]} cy={p.lf[1]} r={2.2} fill={LOOK.legsFar} />
+        <Circle cx={p.rf[0]} cy={p.rf[1]} r={2.3} fill={LOOK.legs} />
+        <Path d={drape} fill={LOOK.hijab} />
+        <Circle cx={hx} cy={hy} r={7.4} fill={LOOK.hijab} />
+        <Ellipse cx={hx + fx} cy={hy + fy} rx={4.3} ry={4.9} fill={LOOK.skin} />
+      </G>
     </Svg>
   );
 }

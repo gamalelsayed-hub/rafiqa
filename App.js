@@ -10,6 +10,7 @@ import { useFonts, Cairo_400Regular, Cairo_500Medium, Cairo_600SemiBold, Cairo_7
 import { C, FontsCtx, ScaleCtx, T, row } from './src/ui';
 import { DataCtx, useData } from './src/store';
 import { NavCtx } from './src/nav';
+import { checkUpdates, loadAll } from './src/packs';
 
 import Home from './src/screens/Home';
 import { CycleScreen, PurityScreen } from './src/screens/Cycle';
@@ -21,6 +22,7 @@ import {
   CalmScreen, HealthScreen,
 } from './src/screens/Knowledge';
 import SettingsScreen from './src/screens/Settings';
+import AskScreen from './src/screens/Ask';
 
 const ROUTES = {
   home: Home,
@@ -51,6 +53,7 @@ const ROUTES = {
   calm: CalmScreen,
   health: HealthScreen,
   settings: SettingsScreen,
+  ask: AskScreen,
 };
 
 const TABS = [
@@ -61,7 +64,7 @@ const TABS = [
   { key: 'more', label: 'المكتبة', icon: 'library' },
 ];
 
-function Shell() {
+function Shell({ contentVersion }) {
   const store = useData();
   const [fontsLoaded, fontError] = useFonts({ Cairo_400Regular, Cairo_500Medium, Cairo_600SemiBold, Cairo_700Bold, Cairo_800ExtraBold });
   const insets = useSafeAreaInsets();
@@ -132,7 +135,7 @@ function Shell() {
         <NavCtx.Provider value={nav}>
           <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={{ flex: 1 }}>
-              <Comp key={`${tab}-${stack.length}-${top.name}`} {...top.params} />
+              <Comp key={`${tab}-${stack.length}-${top.name}-${contentVersion}`} {...top.params} />
             </View>
             <LinearGradient colors={[C.plum, C.plumDeep]} style={[s.tabs, { paddingBottom: Math.max(insets.bottom, 8) }]}>
               {TABS.map((t) => {
@@ -162,10 +165,27 @@ function Shell() {
 }
 
 export default function App() {
+  // «الكتب» بتتحمّل أول ما التطبيق يتفتح، وبعدها بيدوّر على تحديثات في الخلفية
+  const [ready, setReady] = useState(false);
+  const [contentVersion, setContentVersion] = useState(0);
+  useEffect(() => {
+    loadAll()
+      .catch((e) => console.warn('content load failed', e))
+      .finally(() => {
+        setReady(true);
+        checkUpdates().then((n) => n > 0 && setContentVersion((v) => v + 1));
+      });
+  }, []);
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <Shell />
+      {ready ? (
+        <Shell contentVersion={contentVersion} />
+      ) : (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
+          <ActivityIndicator color={C.plum} size="large" />
+        </View>
+      )}
     </SafeAreaProvider>
   );
 }

@@ -20,6 +20,7 @@ export function MoreScreen() {
   const w = womanOfDay(todayKey());
   return (
     <Screen title="المكتبة">
+      <ListItem icon="search" color="plum" title="اسألي" sub="اكتبي سؤالك، ويطلعلك الحكم والآية والحديث من الكتب" onPress={() => nav.push('ask')} />
       <ListItem icon="star" color="plum" title="قدوتي" sub={`سير أمهات المؤمنين والصحابيات والصالحات. قريتي ${data.seerahRead.length} من ${ALL_WOMEN.length}`} onPress={() => nav.push('seerah')} />
       <ListItem icon="book" color="fertile" title="الأحكام الفقهية" sub="الطهارة، والعبادات، والزينة، والزواج، والطلاق، والعدة" onPress={() => nav.push('fiqh')} />
       <ListItem icon="shield-checkmark" color="plum" title="مكانتك في الإسلام" sub="تطمين نفسي، وردود على الشبهات" onPress={() => nav.push('status')} />

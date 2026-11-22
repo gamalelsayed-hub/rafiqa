@@ -25,6 +25,10 @@ export default function Home() {
         </Pressable>
       }
     >
+      <Pressable onPress={() => nav.push('ask')} style={{ flexDirection: row, alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 999, borderWidth: 1.5, borderColor: C.plumSoft, paddingVertical: 12, paddingHorizontal: 16 }}>
+        <Ionicons name="search" size={20} color={C.plum} />
+        <T style={{ flex: 1, color: C.sub }}>اسألي عن أي حاجة: حكم، آية، حديث...</T>
+      </Pressable>
       {preg && !preg.birth ? <PregCard /> : preg?.birth ? <PostCard /> : <CycleCard />}
 
       <Card color="plum" onPress={() => nav.go('more', 'woman', { id: woman.id })}>

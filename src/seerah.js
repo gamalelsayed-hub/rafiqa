@@ -1,9 +1,7 @@
-import { GROUPS, WOMEN_1 } from './seerah1';
-import { WOMEN_2 } from './seerah2';
+import { ALL_WOMEN } from './data';
 import { diffDays } from './cycle';
 
-export { GROUPS };
-export const ALL_WOMEN = [...WOMEN_1, ...WOMEN_2];
+export { GROUPS, ALL_WOMEN } from './data';
 
 function gcd(a, b) {
   return b ? gcd(b, a % b) : a;
